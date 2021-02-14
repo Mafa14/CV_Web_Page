@@ -1,12 +1,7 @@
-/**
-* PHP Email Form Validation - v2.3
-* URL: https://bootstrapmade.com/php-email-form/
-* Author: BootstrapMade.com
-*/
 !(function($) {
   "use strict";
 
-  $('form.php-email-form').submit(function(e) {
+  $('#contact-me').submit(function(e) {
     e.preventDefault();
     
     var f = $(this).find('.form-group'),
@@ -109,57 +104,31 @@
     this_form.find('.error-message').slideUp();
     this_form.find('.loading').slideDown();
 
-    if ( $(this).data('recaptcha-site-key') ) {
-      var recaptcha_site_key = $(this).data('recaptcha-site-key');
-      grecaptcha.ready(function() {
-        grecaptcha.execute(recaptcha_site_key, {action: 'php_email_form_submit'}).then(function(token) {
-          php_email_form_submit(this_form,action,this_form.serialize() + '&recaptcha-response=' + token);
-        });
-      });
-    } else {
-      php_email_form_submit(this_form,action,this_form.serialize());
-    }
+    sendMail(this_form);
     
     return true;
   });
 
-  function php_email_form_submit(this_form, action, data) {
-    $.ajax({
-      type: "POST",
-      url: action,
-      data: data,
-      timeout: 40000
-    }).done( function(msg){
-      if (msg.trim() == 'OK') {
-        this_form.find('.loading').slideUp();
-        this_form.find('.sent-message').slideDown();
-        this_form.find("input:not(input[type=submit]), textarea").val('');
+  function sendMail(form) {
+    var mail = new FormData(form[0]);
+    fetch("http://localhost:5000/send", {
+      method: "post",
+      body: mail,
+    })
+    .then(response => response.json())
+    .then((data) => {
+
+      if (data.status == "200") {
+        form.find('.loading').slideUp();
+        form.find('.sent-message').slideDown();
+        form.find("input:not(input[type=submit]), textarea").val('');
       } else {
-        this_form.find('.loading').slideUp();
-        if(!msg) {
-          msg = 'Form submission failed and no error message returned from: ' + action + '<br>';
-        }
-        this_form.find('.error-message').slideDown().html(msg);
+        form.find('.loading').slideUp();
+        form.find('.error-message').slideDown().html(data.message + '<br>');
       }
-    }).fail( function(data){
-      console.log(data);
-      var error_msg = "Form submission failed!<br>";
-      if(data.statusText || data.status) {
-        error_msg += 'Status:';
-        if(data.statusText) {
-          error_msg += ' ' + data.statusText;
-        }
-        if(data.status) {
-          error_msg += ' ' + data.status;
-        }
-        error_msg += '<br>';
-      }
-      if(data.responseText) {
-        error_msg += data.responseText;
-      }
-      this_form.find('.loading').slideUp();
-      this_form.find('.error-message').slideDown().html(error_msg);
+
+      return false;
     });
-  }
+  };
 
 })(jQuery);
